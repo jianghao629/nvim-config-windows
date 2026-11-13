@@ -1,0 +1,7 @@
+# 把本文件内容替换成你的真实 DeepSeek API key，然后另存为 ~/.config/deepseek/api_key
+# 申请地址: https://platform.deepseek.com/api_keys
+# 保存后执行: chmod 600 ~/.config/deepseek/api_key
+#
+# 也可以改用环境变量（优先于文件）:
+#   export DEEPSEEK_API_KEY="sk-..."
+sk-REPLACE_WITH_YOUR_KEY

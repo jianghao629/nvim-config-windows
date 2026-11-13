@@ -1,0 +1,39 @@
+{
+    "profiles": {
+        "defaults": {
+            "font": {
+                "face": "Maple Mono NF CN",
+                "size": 14
+            },
+            "colorScheme": "Tokyo Night Moon (nvim-config)",
+            "opacity": 92,
+            "useAcrylic": true,
+            "cursorShape": "bar"
+        }
+    },
+    "schemes": [
+        {
+            "name": "Tokyo Night Moon (nvim-config)",
+            "background": "#222436",
+            "black": "#1b1d2b",
+            "blue": "#82aaff",
+            "brightBlack": "#444a73",
+            "brightBlue": "#82aaff",
+            "brightCyan": "#86e1fc",
+            "brightGreen": "#c3e88d",
+            "brightPurple": "#fca7ea",
+            "brightRed": "#ff757f",
+            "brightWhite": "#c8d3f5",
+            "brightYellow": "#ffc777",
+            "cursorColor": "#c8d3f5",
+            "cyan": "#86e1fc",
+            "foreground": "#c8d3f5",
+            "green": "#c3e88d",
+            "purple": "#c099ff",
+            "red": "#ff757f",
+            "selectionBackground": "#2d3f76",
+            "white": "#828bb8",
+            "yellow": "#ffc777"
+        }
+    ]
+}

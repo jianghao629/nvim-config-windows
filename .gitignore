@@ -1,0 +1,6 @@
+dist/
+.cache/
+*.zip
+SHA256SUMS
+test-home/
+.DS_Store
