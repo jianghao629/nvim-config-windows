@@ -71,10 +71,14 @@ Show-Item 'git' (Get-Command git.exe -ErrorAction SilentlyContinue | Select-Obje
 
 Write-Host '--- 字体 / 终端 ---' -ForegroundColor DarkGray
 $fontReg = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
-$maple = Get-ItemProperty -Path $fontReg -ErrorAction SilentlyContinue |
-    Get-Member -MemberType NoteProperty |
-    Where-Object { $_.Name -like 'Maple Mono NF CN*' } |
-    Select-Object -ExpandProperty Name
+$fontProps = Get-ItemProperty -Path $fontReg -ErrorAction SilentlyContinue
+$maple = $null
+if ($fontProps) {
+    $maple = $fontProps |
+        Get-Member -MemberType NoteProperty |
+        Where-Object { $_.Name -like 'Maple Mono NF CN*' } |
+        Select-Object -ExpandProperty Name
+}
 $mapleState = if ($maple) { '已注册：' + (@($maple) -join ', ') } else { '未注册' }
 Show-Item 'Maple Mono NF CN' $mapleState
 $fragment = Join-Path $LocalAppData 'Microsoft\Windows Terminal\Fragments\nvim-config\settings.json'

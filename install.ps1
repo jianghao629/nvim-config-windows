@@ -73,7 +73,9 @@ function Backup-Path([string]$Path) {
 
 function Copy-Directory([string]$Source, [string]$Destination) {
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-    Copy-Item -LiteralPath (Join-Path $Source '*') -Destination $Destination -Recurse -Force
+    Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $Destination -Recurse -Force
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -89,7 +91,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $Root 'nvim\init.lua'))) {
 # 去掉脚本的“来自 Internet”标记（不处理插件等大量文件，避免拖慢安装）
 Get-ChildItem -Path $Root -File -ErrorAction SilentlyContinue |
     Where-Object { $_.Extension -in '.ps1', '.bat', '.cmd' } |
-    ForEach-Object { Unblock-File -LiteralPath $_.FullName -ErrorAction SilentlyContinue }
+    ForEach-Object { try { Unblock-File -LiteralPath $_.FullName -ErrorAction Stop } catch {} }
 
 $CurlExe = Join-Path $env:SystemRoot 'System32\curl.exe'
 if (-not (Test-Path -LiteralPath $CurlExe)) {
@@ -183,9 +185,13 @@ if ($NvimExe -and (Test-Path -LiteralPath (Join-Path $NvimDir 'bin\nvim.exe'))) 
         if ($null -eq $userPath) { $userPath = '' }
         $parts = @($userPath -split ';' | Where-Object { $_ -ne '' })
         if ($parts -notcontains $ShimDir) {
-            $newPath = if ($userPath.Trim() -eq '') { $ShimDir } else { "$ShimDir;$userPath" }
-            [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
-            Write-Step "已把 $ShimDir 加入用户 PATH（新开的终端生效）"
+            try {
+                $newPath = if ($userPath.Trim() -eq '') { $ShimDir } else { "$ShimDir;$userPath" }
+                [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+                Write-Step "已把 $ShimDir 加入用户 PATH（新开的终端生效）"
+            } catch {
+                Write-Warn "无法自动写入用户 PATH（$($_.Exception.Message)）；请手动把 $ShimDir 加入 PATH"
+            }
         }
         if (@($env:Path -split ';') -notcontains $ShimDir) { $env:Path = "$ShimDir;$env:Path" }
     }
@@ -199,35 +205,46 @@ if (-not $NoFonts) {
     $FontDst = Join-Path $LocalAppData 'Microsoft\Windows\Fonts'
     if (Test-Path -LiteralPath $FontSrc) {
         New-Item -ItemType Directory -Force -Path $FontDst | Out-Null
-        $fontRegPath = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
-        if (-not (Test-Path -LiteralPath $fontRegPath)) {
-            New-Item -Path $fontRegPath -Force | Out-Null
-        }
-        $fontFriendlyNames = @{
-            'MapleMono-NF-CN-Regular.ttf' = 'Maple Mono NF CN Regular (TrueType)'
-            'MapleMono-NF-CN-Bold.ttf'    = 'Maple Mono NF CN Bold (TrueType)'
-        }
-        try {
-            Add-Type -Namespace Win32 -Name Gdi32 -MemberDefinition '[DllImport("gdi32.dll", CharSet=CharSet.Unicode)] public static extern int AddFontResourceW(string lpFileName);' -ErrorAction SilentlyContinue
-        } catch {}
+
+        # 先复制字体文件，保证即使注册表不可写字体也已就位
+        $fontFiles = @()
         Get-ChildItem -LiteralPath $FontSrc -Filter '*.ttf' -ErrorAction SilentlyContinue | ForEach-Object {
             $destFont = Join-Path $FontDst $_.Name
             Copy-Item -LiteralPath $_.FullName -Destination $destFont -Force
-            $friendly = $fontFriendlyNames[$_.Name]
-            if (-not $friendly) {
-                $friendly = "$([IO.Path]::GetFileNameWithoutExtension($_.Name)) (TrueType)"
-            }
-            Set-ItemProperty -Path $fontRegPath -Name $friendly -Value $destFont
-            try { [Win32.Gdi32]::AddFontResourceW($destFont) | Out-Null } catch {}
-            Write-Step "字体已安装：$($_.Name)"
+            $fontFiles += @{ Name = $_.Name; Path = $destFont }
+            Write-Step "字体已复制：$($_.Name)"
         }
-        # 广播 WM_FONTCHANGE，让已经打开的程序也能感知
+
         try {
-            Add-Type -Namespace Win32 -Name User32 -MemberDefinition '[DllImport("user32.dll", CharSet=CharSet.Auto)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam, int fuFlags, int uTimeout, out IntPtr lpdwResult);' -ErrorAction SilentlyContinue
-            $fontChangeResult = [IntPtr]::Zero
-            [Win32.User32]::SendMessageTimeout([IntPtr]0xffff, 0x001D, [IntPtr]::Zero, [IntPtr]::Zero, 0x0002, 1000, [ref]$fontChangeResult) | Out-Null
-        } catch {}
-        Write-Step '字体注册完成（新开的终端生效；若字体列表里没有，请注销一次再登录）'
+            $fontRegPath = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+            if (-not (Test-Path -LiteralPath $fontRegPath)) {
+                New-Item -Path $fontRegPath -Force | Out-Null
+            }
+            $fontFriendlyNames = @{
+                'MapleMono-NF-CN-Regular.ttf' = 'Maple Mono NF CN Regular (TrueType)'
+                'MapleMono-NF-CN-Bold.ttf'    = 'Maple Mono NF CN Bold (TrueType)'
+            }
+            try {
+                Add-Type -Namespace Win32 -Name Gdi32 -MemberDefinition '[DllImport("gdi32.dll", CharSet=CharSet.Unicode)] public static extern int AddFontResourceW(string lpFileName);' -ErrorAction SilentlyContinue
+            } catch {}
+            foreach ($font in $fontFiles) {
+                $friendly = $fontFriendlyNames[$font.Name]
+                if (-not $friendly) {
+                    $friendly = "$([IO.Path]::GetFileNameWithoutExtension($font.Name)) (TrueType)"
+                }
+                Set-ItemProperty -Path $fontRegPath -Name $friendly -Value $font.Path
+                try { [Win32.Gdi32]::AddFontResourceW($font.Path) | Out-Null } catch {}
+            }
+            try {
+                Add-Type -Namespace Win32 -Name User32 -MemberDefinition '[DllImport("user32.dll", CharSet=CharSet.Auto)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam, int fuFlags, int uTimeout, out IntPtr lpdwResult);' -ErrorAction SilentlyContinue
+                $fontChangeResult = [IntPtr]::Zero
+                [Win32.User32]::SendMessageTimeout([IntPtr]0xffff, 0x001D, [IntPtr]::Zero, [IntPtr]::Zero, 0x0002, 1000, [ref]$fontChangeResult) | Out-Null
+            } catch {}
+            Write-Step '字体注册完成（新开的终端生效；若字体列表里没有，请注销一次再登录）'
+        } catch {
+            Write-Warn "字体注册失败：$($_.Exception.Message)"
+            Write-Warn "字体文件已复制到 $FontDst，可手动右键安装（或注销后由系统自动识别）"
+        }
     } else {
         Write-Warn '未找到字体目录 env\fonts，跳过字体安装'
     }
