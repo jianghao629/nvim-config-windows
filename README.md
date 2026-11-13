@@ -254,7 +254,14 @@ MANIFEST.txt             仅离线包中存在：版本与提交清单
 | Telescope 找文件/搜索奇怪 | 确认 `rg.exe`/`fd.exe` 在 `%LOCALAPPDATA%\nvim-data\bin\tools`，并运行 `.\check.ps1` |
 | 中文显示成方块 | 字体未生效，见上；Windows Terminal 里也确认字体设置 |
 
-## 十、致谢与许可
+## 十、调试与维护
+
+Windows 真机排障、重新打包、发布流程、已知限制和回归测试清单整理在 **[DEBUG.md](DEBUG.md)**；
+Linux 版对应文档见 [nvim-config DEBUG.md](https://github.com/jianghao629/nvim-config/blob/main/DEBUG.md)。
+
+---
+
+## 十一、致谢与许可
 
 - 配置与脚本：MIT（见 `LICENSE`）
 - 字体 Maple Mono NF CN：SIL OFL 1.1（见 `env/fonts/OFL.txt`）

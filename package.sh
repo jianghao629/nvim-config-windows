@@ -66,7 +66,7 @@ log "复制仓库内容..."
 cp -a "$REPO_DIR/nvim" "$STAGE/nvim"
 cp -a "$REPO_DIR/env" "$STAGE/env"
 [ -d "$REPO_DIR/THIRD_PARTY" ] && cp -a "$REPO_DIR/THIRD_PARTY" "$STAGE/THIRD_PARTY"
-for f in install.ps1 install.bat uninstall.ps1 check.ps1 README.md LICENSE THIRD_PARTY.md; do
+for f in install.ps1 install.bat uninstall.ps1 check.ps1 README.md DEBUG.md LICENSE THIRD_PARTY.md; do
     [ -e "$REPO_DIR/$f" ] && cp -a "$REPO_DIR/$f" "$STAGE/$f"
 done
 
