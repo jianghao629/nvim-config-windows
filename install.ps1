@@ -132,7 +132,9 @@ if (Test-Path -LiteralPath $ToolsSrc) {
     $toolPaths = @(
         (Join-Path $ToolDir 'clangd\bin'),
         (Join-Path $ToolDir 'lua-language-server\bin'),
-        (Join-Path $ToolDir 'stylua')
+        (Join-Path $ToolDir 'stylua'),
+        (Join-Path $ToolDir 'rg'),
+        (Join-Path $ToolDir 'fd')
     ) | Where-Object { Test-Path -LiteralPath $_ }
 
     New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
